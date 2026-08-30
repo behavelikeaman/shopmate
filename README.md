@@ -52,6 +52,17 @@ npm run dev     # http://localhost:3000
 
 ### 5. 계정 준비
 **판매자**는 가입 화면에서 "판매자로 가입"을 선택하면 된다 (스토어명 필요).
+가입하면 바로 `/seller/products`(판매자 콘솔)에 들어갈 수 있다. 이미 일반 회원으로 가입했다면
+가입 화면을 다시 쓰지 말고 SQL Editor에서 역할만 바꾼다 — 스스로 권한을 올리는 화면은 없다 (ADR-008):
+```sql
+update profiles set role = 'seller'
+where id = (select id from auth.users where email = '내이메일@example.com');
+
+-- 스토어명은 seller_profiles에 따로 있다 (ADR-011). 없으면 판매자명이 비어 보인다.
+insert into seller_profiles (id, store_name)
+select id, '내 스토어 이름' from auth.users where email = '내이메일@example.com'
+on conflict (id) do update set store_name = excluded.store_name;
+```
 
 **운영자(admin)**는 회원가입 UI로 만들 수 없다 (ADR-008). 앱에서 이메일로 가입한 뒤 SQL Editor에서 승격한다:
 ```sql

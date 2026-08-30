@@ -2,15 +2,87 @@
   "project": "ShopMate",
   "phase": "0-mvp",
   "steps": [
-    { "step": 0, "name": "project-setup", "status": "pending" },
-    { "step": 1, "name": "db-schema", "status": "pending" },
-    { "step": 2, "name": "types-and-lib", "status": "pending" },
-    { "step": 3, "name": "supabase-clients", "status": "pending" },
-    { "step": 4, "name": "auth", "status": "pending" },
-    { "step": 5, "name": "cart", "status": "pending" },
-    { "step": 6, "name": "order-rpc", "status": "pending" },
-    { "step": 7, "name": "checkout-orders", "status": "pending" },
-    { "step": 8, "name": "storefront-ui", "status": "pending" },
-    { "step": 9, "name": "seller-console", "status": "pending" }
-  ]
+    {
+      "step": 0,
+      "name": "project-setup",
+      "status": "completed",
+      "started_at": "2026-08-30T13:55:35+0900",
+      "summary": "Next.js 15.5.24 + TypeScript(strict) + Tailwind v4 골격 초기화 — package.json, tsconfig.json, next.config.ts, postcss.config.mjs, eslint.config.mjs, src/app/{layout.tsx,globals.css,page.tsx}. build·lint 통과.",
+      "completed_at": "2026-08-30T14:02:45+0900"
+    },
+    {
+      "step": 1,
+      "name": "db-schema",
+      "status": "completed",
+      "started_at": "2026-08-30T14:04:22+0900",
+      "summary": "supabase/migrations/{0001_schema.sql, 0002_rls.sql, 0003_seed.sql} 작성. 테이블 8개(profiles, seller_profiles, products, carts, cart_items, orders, order_groups, order_items) + 인덱스 7개 + 가입 트리거 handle_new_user(security definer, admin 승격 경로 없음). RLS: 8개 테이블 전부 enable + 정책 23개(정책 0개인 테이블 없음), 헬퍼 is_admin·current_profile_role·owns_order·is_order_seller·can_read_order_group 모두 security definer(정책 무한 재귀 차단). order_groups는 status/shipped_at/cancelled_at 컬럼만 UPDATE 허용. 금액 컬럼(price, subtotal, shipping_fee, unit_price) 전부 integer, numeric/float 없음. orders에 total_amount·status 없음(ADR-010). 시드: 판매자 3명 상품 14개(카테고리 4종, stock 0 두 건, 5만원 임계값 근처 가격 다수). ★ 사람이 할 일: 0003_seed.sql 상단 seller_a/seller_b/seller_c 의 uuid 3개를 실제 판매자 계정 uuid로 채운 뒤 실행. 검증: npm run build·npm run lint 통과, src/ 무변경.",
+      "completed_at": "2026-08-30T14:09:02+0900"
+    },
+    {
+      "step": 2,
+      "name": "types-and-lib",
+      "status": "completed",
+      "started_at": "2026-08-30T14:09:03+0900",
+      "summary": "src/types/index.ts (Role, GroupStatus, Seller, Product, CartLine, CartLineView, SellerGroup, CartTotals, ShippingInfo, OrderItem, OrderGroup, Order — Order에 totalAmount 없음/ADR-010) + src/lib 순수 함수 4파일 TDD: pricing.ts(FREE_SHIPPING_THRESHOLD=50000, SHIPPING_FEE=3000, formatPrice, groupBySeller, calculateOrderTotals, remainingForFreeShipping — 배송비는 판매자 그룹별 판정/ADR-012, 정수 연산만), cart.ts(mergeCartLines, clampQuantity), validation.ts(validateShipping), order-status.ts(canCancelGroup, canShipGroup, statusLabel). vitest 도입(vitest.config.ts에 @/* alias, npm run test=vitest run). 테스트 52개 통과, build·lint 통과.",
+      "completed_at": "2026-08-30T14:13:05+0900"
+    },
+    {
+      "step": 3,
+      "name": "supabase-clients",
+      "status": "completed",
+      "started_at": "2026-08-30T14:13:05+0900",
+      "summary": "@supabase/supabase-js·@supabase/ssr·server-only 설치. src/services/supabase.ts — import 'server-only' 최상단, requireEnv 로 환경변수 누락 시 즉시 throw, createBrowserSupabaseClient()/createServerSupabaseClient()(cookies() 어댑터, setAll 예외는 삼킴 — 갱신은 미들웨어 담당)/createAdminSupabaseClient()(service_role, 만들어두되 사용처 없음). src/services/products.ts — listProducts({category,query})·getProduct(id)→Product|null·listCategories()→string[]·getStockMap(ids)→Record<string,number>·getProductsByIds(ids)→Product[], 전부 서버 클라이언트(RLS 적용), snake_case→camelCase 매핑은 toProduct 하나로, 정렬은 created_at 등록순, query 는 ilike 부분일치, Supabase 에러는 전부 throw. 판매자명은 seller_profiles 에서 별도 조회 후 병합(products.seller_id·seller_profiles.id 가 둘 다 auth.users 를 가리켜 PostgREST 임베디드 조인 경로가 없음, profiles 는 조회하지 않음/ADR-011). src/app/page.tsx 를 Server Component 임시 목록으로 교체(스타일 없음). 검증: build·lint 통과, 기존 테스트 52개 유지. grep SERVICE_ROLE=services/supabase.ts 1곳, services/ 에 'use client' 없음. ★ 사람이 할 일: .env.example 을 .env.local 로 복사해 Supabase URL·anon·service_role 키를 채우고, supabase/migrations 3개를 적용해야 npm run dev 에서 시드 상품이 보인다. ※ Step 4 참고: 지시대로 supabase.ts 상단에 'server-only' 를 두었으므로 클라이언트 컴포넌트에서 createBrowserSupabaseClient 를 import 하려면 그 함수를 별도 파일로 분리해야 한다.",
+      "completed_at": "2026-08-30T14:16:11+0900"
+    },
+    {
+      "step": 4,
+      "name": "auth",
+      "status": "completed",
+      "started_at": "2026-08-30T14:16:11+0900",
+      "summary": "생성: src/middleware.ts(createServerClient 로 요청/응답 쿠키 이어받아 getUser() 로 세션 갱신, 응답 객체를 갈아치우지 않고 setAll 안에서 재생성 후 리다이렉트 응답에도 쿠키 복사, matcher 에서 _next/static·_next/image·favicon·이미지 확장자 제외, /seller·/checkout·/orders 비로그인 시 /login?next=<경로> — UI 편의일 뿐 방어선은 RLS/ADR-008), src/lib/redirect.ts+redirect.test.ts(safeNextPath — TDD, 오픈 리다이렉트 차단: '/' 로 시작 + '//'·'/\\' 아님 + 제어문자 없음, 테스트 8개), src/services/auth.ts(getCurrentUser·getCurrentProfile·requireUser(next?)·requireSeller() — 역할은 DB profiles.role 을 실제 SELECT 해서 판정/ADR-008, 스토어명은 seller_profiles/ADR-011, requireSeller 는 seller 와 admin 둘 다 통과/ADR-016, getSession 대신 getUser 사용), src/app/(auth)/actions.ts(signUp·signIn·signOut — signUp 은 options.data 에 is_seller·store_name 만 실어 보내고 profiles/seller_profiles 는 Step 1 트리거가 만든다(앱 코드 INSERT 0건, role 을 직접 담는 경로 없음), 비밀번호 6자·판매자 스토어명 필수를 서버에서 재검증, Supabase 영문 에러를 한국어로 매핑하고 로그인 실패는 '이메일 또는 비밀번호가 올바르지 않습니다' 로 통일(계정 열거 방지), 성공 시 revalidatePath('/','layout') 후 safeNextPath(next) 로 redirect), src/app/(auth)/login/page.tsx·signup/page.tsx(searchParams 의 next 를 hidden 필드로 전달), src/components/AuthForm.tsx('use client', useActionState 로 에러 표시 + '판매자로 가입' 체크 시 스토어명 노출), src/components/SiteHeader.tsx(로고·장바구니 링크(cartCount prop 은 Step 5 에서 연결)·로그인/주문내역·로그아웃, seller|admin 이면 판매자 콘솔 링크) 를 layout.tsx 에 삽입. 검증: npm run build·npm run lint·npm run test(60개) 전부 통과. ★ 사람이 할 일(웹): Supabase 대시보드 Authentication > Sign In / Providers 에서 'Confirm email' 을 끄지 않으면 가입 직후 로그인 상태가 되지 않는다(가입은 되지만 헤더가 비로그인으로 남음). 실습에서는 꺼 두는 것을 권한다.",
+      "completed_at": "2026-08-30T14:22:12+0900"
+    },
+    {
+      "step": 5,
+      "name": "cart",
+      "status": "completed",
+      "started_at": "2026-08-30T14:22:13+0900",
+      "summary": "src/services/cart.ts(getOrCreateCart·getCartLines·getCartGroups·setCartItem·removeCartItem·clearCart·mergeLocalCart·getCartCount — 전부 createServerSupabaseClient(RLS 적용, admin 클라이언트 0회), findCartId 로 조회 경로에서 빈 carts 행을 만들지 않고, setCartItem 은 unique(cart_id,product_id) upsert 로 멱등하며 저장 직전 getStockMap→clampQuantity 로 재고 클램프(0 이하면 삭제), getCartGroups 는 getProductsByIds 로 상품을 붙인 뒤 groupBySeller() 호출, mergeLocalCart 는 mergeCartLines(local, server, stockMap) 결과로 통째 교체 — 그룹핑·배송비·병합·클램프를 재구현하지 않음), src/app/cart/actions.ts('use server': addToCartAction·updateQuantityAction·removeFromCartAction·mergeLocalCartAction — 사용자·상품·재고를 서버에서 다시 읽어 판정, 품절은 {error:'품절된 상품입니다'}, 재고 초과는 {error:'재고가 부족합니다 (남은 수량: N)'} 를 던지지 않고 반환, 성공 시 revalidatePath('/cart')), src/lib/local-cart.ts+local-cart.test.ts(LOCAL_CART_KEY='shopmate.cart.v1', readLocalCart/writeLocalCart/clearLocalCart — window 없으면 빈 배열, 깨진 JSON·모양 불일치 줄은 조용히 버림, 테스트 7개), src/app/cart/page.tsx(Server Component: 로그인이면 getCartGroups→calculateOrderTotals→<ServerCart>, 비로그인이면 listProducts()를 <LocalCart> 에 내려 클라이언트가 로컬 줄과 맞춤), src/components/{CartView(그룹 카드·소계/배송비/remainingForFreeShipping·전체 요약, 그룹 1개여도 같은 구조, 삭제는 Danger Text+window.confirm),QuantityStepper,ServerCart(useTransition+액션 에러 표시),LocalCart,CartMerge}.tsx. ★ 병합 트리거: SiteHeader 에서 로그인 상태일 때만 <CartMerge/> 렌더 → useEffect 1회(useRef 잠금으로 StrictMode 이중 실행 차단) 안에서 readLocalCart→mergeLocalCartAction→성공 후 clearLocalCart. 헤더 뱃지는 getCartCount(로그인 시). 검증: npm run build·npm run lint·npm run test(67개) 통과.",
+      "completed_at": "2026-08-30T14:27:58+0900"
+    },
+    {
+      "step": 6,
+      "name": "order-rpc",
+      "status": "completed",
+      "started_at": "2026-08-30T14:27:58+0900",
+      "completed_at": "2026-08-30T14:31:50+0900",
+      "summary": "supabase/migrations/0004_order_rpc.sql — Postgres 함수 4종. shipping_fee_for(subtotal integer)->integer (50000 이상 0원, 미만 3000원 — lib/pricing.ts 상수와 동일, ADR-015); create_order(p_shipping_name,p_shipping_phone,p_shipping_address)->uuid (사용자 id 인자 없음, auth.uid() 로만 판정. 서버 장바구니를 읽고 products 에서 현재 price/stock/seller_id/name 을 다시 읽어 재고 부족 시 전체 실패, orders 1행 + 판매자별 order_groups(status=paid, 그룹 소계 기준 배송비) + order_items(name_snapshot·unit_price 스냅샷) INSERT, 재고는 update ... where stock >= qty 조건부 UPDATE 로 차감(영향 행 0이면 예외→전체 롤백), 마지막에 cart_items 비움); cancel_order_group(uuid)->void (구매자 본인·그룹 판매자·admin 만, status=cancelled where status=paid 조건부 UPDATE 후 영향 행 1일 때만 product_id NOT NULL 품목 재고 복구 — 멱등); ship_order_group(uuid)->void (그룹 판매자·admin 만, status=shipped where status=paid, 재고 무변경). 예외 메시지(한국어 그대로 화면 노출용): 로그인이 필요합니다. / 배송지 정보를 모두 입력해 주세요. / 장바구니가 비어 있습니다. / 재고가 부족한 상품이 있어 주문할 수 없습니다: <상품명 (재고 N개, 주문 M개)> / 재고가 부족해 주문에 실패했습니다. 장바구니를 다시 확인해 주세요. / 이 주문을 취소할 권한이 없습니다. / 이미 취소되었거나 발송된 주문은 취소할 수 없습니다. / 이 주문을 발송 처리할 권한이 없습니다. / 발송 준비중인 주문만 발송 처리할 수 있습니다. 앱 계층은 Step 7에서 services/ 의 async 함수가 서버 클라이언트로 supabase.rpc(\"create_order\"|\"cancel_order_group\"|\"ship_order_group\", {...}) 를 호출하고 error.message 를 그대로 사용자에게 보여주면 된다. 정적 점검: 세 RPC 모두 security definer + set search_path = public, pg_temp; 상태 변경·재고 차감·재고 복구 전부 조건부 UPDATE + get diagnostics row_count 판정이며 select-then-update 패턴 없음(재고 부족 사전 조회는 메시지용이고 판정은 조건부 UPDATE); create_order 인자는 배송지 3개뿐; 배송비 상수 50000/3000 일치; 배송비는 group by seller_id 의 그룹 소계 기준. grant execute 는 authenticated 에만(anon·public 은 revoke). src/ 무변경, npm run build·lint·test(67개) 통과. ★ 사람이 할 일(웹): Supabase 대시보드 SQL Editor 에서 0004_order_rpc.sql 을 실행해야 Step 7 의 주문 기능이 동작한다."
+    },
+    {
+      "step": 7,
+      "name": "checkout-orders",
+      "status": "completed",
+      "started_at": "2026-08-30T14:31:50+0900",
+      "completed_at": "2026-08-30T14:36:31+0900",
+      "summary": "생성: src/services/orders.ts(createOrder(shipping)->{ok,orderId}|{ok:false,error} = rpc('create_order',{p_shipping_name,p_shipping_phone,p_shipping_address}) 한 번, listOrders()->Order[], getOrder(id)->Order|null, cancelOrderGroup(groupId)/shipOrderGroup(groupId)->{ok}|{ok:false,error} 도 각각 rpc 한 번. RPC 예외의 한국어 문장은 그대로 error 에 담고, 한글이 없는 원문(Postgres/PostgREST)은 '주문을 처리하지 못했습니다'로 감싼다 — 던지지 않고 반환), src/app/checkout/{page.tsx(requireUser('/checkout') + 판매자 그룹 블록 요약),actions.ts(placeOrderAction: validateShipping -> createOrder -> redirect(/orders/{id}), 배송지 3칸 외에는 폼에서 아무 금액도 받지 않음)}, src/app/orders/{page.tsx(목록·빈 상태),[id]/page.tsx(그룹별 상태 뱃지·품목 스냅샷·소계/배송비·전체 합계·배송지, 없는/남의 주문은 notFound()),actions.ts(cancelGroupAction -> revalidatePath)}, src/components/{OrderStatusBadge,CancelGroupButton(Danger Text + window.confirm '…재고는 복구됩니다'),CheckoutForm(useActionState, 제출 중 비활성화)}.tsx. 수정: lib/pricing.ts calculateOrderTotals 인자를 {subtotal,shippingFee}[] 로 넓혀 OrderGroup 도 그대로 받게 함(계산 로직 무변경, 테스트 20개 그대로 통과), services/products.ts 의 fetchSellers·UNKNOWN_STORE_NAME export(주문 그룹의 스토어명 조회에 재사용 — seller_profiles 는 조인 경로가 없어 별도 조회). 체크: 주문 생성·취소 로직이 TypeScript 에 없음(rpc 호출뿐), 주문 조회에 products 조인 없음(ADR-006 스냅샷만), Order 에 총액 필드 없이 calculateOrderTotals 로 그룹 합 계산(ADR-010), 취소 버튼은 canCancelGroup(paid)에만 노출, 취소는 Danger Text 버튼. AC: npm run build / lint / test(67개) 전부 통과. ★ 수동 검증 8번(체크아웃 화면 금액 == /orders/{id} 저장 금액, ADR-015)은 실행하지 못했다 — Supabase 연결(.env.local)과 0004_order_rpc.sql 적용이 필요한 사람 작업이라 코드상 정합성만 확인했다(SQL shipping_fee_for 50000/3000 과 lib/pricing.ts FREE_SHIPPING_THRESHOLD/SHIPPING_FEE 동일, 양쪽 모두 판매자 그룹 소계 기준). npm run dev 로 1~8번을 직접 확인해야 한다."
+    },
+    {
+      "step": 8,
+      "name": "storefront-ui",
+      "status": "completed",
+      "started_at": "2026-08-30T14:36:32+0900",
+      "completed_at": "2026-08-30T14:43:38+0900",
+      "summary": "완성한 화면: / (상품 목록 — searchParams 의 category·q 를 listProducts 에 넘기는 Server Component, 카테고리 칩 + GET 검색 폼으로 URL 이 바뀌고 서버가 필터링, grid-cols-2/md:3/lg:4, 등록순 유지·품절 미이동, 빈 상태 + 필터 초기화 링크), /products/[id] (신규 — 좌 이미지/우 카테고리·상품명·스토어명·가격·재고·설명·수량 스테퍼·담기, 없는 id 는 notFound(), 품절이면 담기 버튼 disabled + 이유 문구, 담기 성공 시 이동 없이 '장바구니에 담았습니다 · 장바구니 보기' 인라인 피드백), /cart·/checkout·/orders·/orders/[id] 스타일 완성, 주문 완료 직후 안내(총액 크게 + 주문내역 보기/쇼핑 계속하기), 헤더·푸터·metadata. 새 공용 컴포넌트: SellerGroupBlock(헤더=스토어명+선택적 상태 뱃지 / 품목 슬롯 / 푸터=소계·배송비·선택적 무료배송 안내·footerExtra — 'use client' 없이 만들어 장바구니(client)·체크아웃·주문 상세(server) 세 화면이 함께 쓴다), OrderTotals(그룹 밖 전체 요약), ProductCard, ProductImage(client — 외부 URL 이미지가 깨지면 bg-neutral-100 플레이스홀더로 폴백, next/image 대신 <img>: 판매자가 아무 도메인이나 넣을 수 있어 remotePatterns 를 만들 수 없다), CategoryFilter, SearchForm, AddToCartForm(client — 로그인이면 addToCartAction(기존 수량+요청 수량), 비로그인이면 localStorage/ADR-007), SiteFooter, Skeleton. loading.tsx 3개(/, /products/[id], /orders — bg-neutral-100 스켈레톤, 스피너 없음) + src/app/error.tsx(한 줄 메시지 + 다시 시도/홈으로). 기존 CartView 는 SellerGroupBlock·OrderTotals·썸네일로 갈아끼우고 375px 에서 줄바꿈되게 flex-wrap 적용. 동작 변경 2건(표현을 위해 최소로): (1) placeOrderAction 의 redirect 를 /orders/{id}?placed=1 로 바꿔 주문 상세가 완료 안내를 함께 그리게 했다 — 완료 전용 라우트를 새로 만들지 않기 위해서다. (2) PlaceOrderState 를 { error?, fieldErrors? } 로 넓혀 배송지 오류를 필드 아래에 붙였다 (함수 시그니처와 validateShipping 규칙은 그대로, 첫 오류 한 줄만 보여주던 firstError 헬퍼 제거). 체크리스트: 안티패턴 grep(backdrop-blur·blur-3xl·bg-gradient-to·rounded-2xl·bg-clip-text) 0건, 보라/인디고 0건, 이모지 0건(아이콘은 SVG strokeWidth 1.5), 상태는 뱃지 텍스트로 구분(색은 보조), 취소·삭제는 Danger Text + window.confirm, 포인트색 #0f766e 는 담기·주문하기·결제·인증 제출에만, 컴포넌트에서 toLocaleString 직접 호출 0건(금액은 전부 formatPrice), 컴포넌트에 가격·그룹핑·재고·상태 판정 로직 추가 없음(lib/ 함수만 호출), package.json 무변경(새 UI/아이콘/토스트 라이브러리 0개). AC: npm run build / lint / test(67개) 전부 통과. ★ 사람이 할 일(터미널): npm run dev 로 수동 검증 1~5번(전 경로 클릭 통과, 375px 가로 스크롤 없음, 품절 담기 불가와 이유 노출, 판매자 2명 이상 장바구니의 그룹 경계·그룹별 배송비, 판매자 1명일 때도 같은 그룹 구조)을 확인해야 한다 — Supabase 연결과 마이그레이션 적용이 필요해 여기서 실행하지 못했다."
+    },
+    {
+      "step": 9,
+      "name": "seller-console",
+      "status": "completed",
+      "started_at": "2026-08-30T14:43:39+0900",
+      "completed_at": "2026-08-30T14:50:22+0900",
+      "summary": "판매자 콘솔 완성. 생성: src/lib/product-form.ts + product-form.test.ts (TDD — 테스트를 먼저 써서 실패시킨 뒤 구현. validateProductInput: 폼 문자열을 정수로 파싱, price·stock 은 정규식 ^[0-9]+$ 로만 통과시켜 '1000.5'·'abc'·''·음수·'1e3'·'1,000' 을 전부 거부하고 Postgres integer 상한(2147483647)도 막는다(ADR-005), imageUrl 은 비면 null·있으면 http(s):// 필수(javascript: 차단), name·category 는 trim 후 1자 이상, 에러는 필드별로 모아 한국어 한 줄. 테스트 16개). services/products.ts 에 createProduct·updateProduct·deleteProduct·listMyProducts 추가 — 전부 createServerSupabaseClient(RLS 적용), createProduct 는 seller_id 를 supabase.auth.getUser() 로 서버에서 채우고 폼에서 받지 않는다, updateProduct 는 RLS 가 0행을 갱신하면 maybeSingle 이 null 을 주므로 '내 상품이 아니거나 삭제됨' 에러로 바꾼다, listMyProducts 는 where seller_id = 나(의도 표현) + RLS(방어) 이중이며 admin 은 조건을 빼 전체가 보인다(ADR-016). services/orders.ts 에 listSellerOrderGroups 추가(order_groups 에서 시작해 orders 배송지·order_items 스냅샷을 임베디드 조인 — 같은 주문의 다른 판매자 그룹은 결과에 들어오지 않는다), types 에 SellerOrderGroup. 화면: /seller/layout.tsx(requireSeller() 한 곳 + 탭), /seller/products(테이블 — 이름/카테고리/가격/재고/수정·삭제, 숫자 text-right tabular-nums, 재고 0 은 숫자만 #b91c1c, overflow-x-auto), /seller/products/new, /seller/products/[id]/edit(updateProductAction.bind 로 id 고정), /seller/orders(테이블 — 주문일/받는 분/품목/금액(소계·배송비 분리 표기)/상태 뱃지/동작, 품목을 누르면 배송지·연락처·품목 스냅샷이 펼쳐진다 — 상세 라우트를 새로 만들지 않았다). 액션: products/actions.ts(create·update·deleteProductAction), orders/actions.ts(shipGroupAction·cancelGroupAction). 5개 액션 전부 자기 안에서 requireSeller() 를 호출한다(레이아웃 가드는 액션을 보호하지 않는다/ADR-008). 발송·취소는 Step 7 의 shipOrderGroup·cancelOrderGroup 재사용 — src/app·src/components 안에 .rpc( 호출 0건. 컴포넌트: ProductForm(useActionState, 필드 에러를 입력 아래, seller_id hidden 필드 없음), DeleteProductButton·SellerOrderRow 의 취소 버튼(Danger Text + window.confirm 에 '재고는 복구됩니다'·'주문 내역의 상품명과 금액은 남습니다' 명시, 새 모달 없음). README 5절에 판매자 승격 SQL(profiles.role + seller_profiles 스토어명) 보완. 체크: grep SERVICE_ROLE src/ = services/supabase.ts 1곳 유지, 판매자 CRUD 에 admin 클라이언트 0회, 상품 삭제 시 order_items 를 지우는 코드 없음(on delete set null 로 스냅샷 보존/ADR-006), 운영자 전용 화면·승격 UI·이미지 업로드 없음, 새 패키지 0개. AC: npm run build / lint / test(83개, 기존 67 + product-form 16) 전부 통과. ★ 사람이 할 일(터미널·웹): 수동 검증 1~9번을 실행하지 못했다 — Supabase 연결(.env.local)과 마이그레이션 0001~0004 적용, 그리고 판매자 계정 2개(A·B)가 필요한 사람 작업이다. 특히 3번(판매자 A 로 B 상품의 /seller/products/{id}/edit 에 직접 들어가 저장 → 실패해야 한다. 화면은 열린다 — products 는 누구나 SELECT 되기 때문이고, 저장을 막는 것은 RLS 의 products_update_own 이다)과 9번(A 의 /seller/orders 에 B 의 그룹이 없어야 한다)은 이 프로젝트의 핵심 보안 요구사항이므로 반드시 직접 확인해야 한다."
+    }
+  ],
+  "created_at": "2026-08-30T13:55:35+0900",
+  "completed_at": "2026-08-30T14:50:23+0900"
 }

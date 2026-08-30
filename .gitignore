@@ -25,3 +25,6 @@ phases/**/step*-output.json
 __pycache__/
 *.pyc
 .pytest_cache/
+
+# harness 실행 로그
+execute-*.log

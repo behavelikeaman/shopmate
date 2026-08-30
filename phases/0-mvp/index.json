@@ -48,7 +48,7 @@
       "status": "completed",
       "started_at": "2026-08-30T14:22:13+0900",
       "summary": "src/services/cart.ts(getOrCreateCart·getCartLines·getCartGroups·setCartItem·removeCartItem·clearCart·mergeLocalCart·getCartCount — 전부 createServerSupabaseClient(RLS 적용, admin 클라이언트 0회), findCartId 로 조회 경로에서 빈 carts 행을 만들지 않고, setCartItem 은 unique(cart_id,product_id) upsert 로 멱등하며 저장 직전 getStockMap→clampQuantity 로 재고 클램프(0 이하면 삭제), getCartGroups 는 getProductsByIds 로 상품을 붙인 뒤 groupBySeller() 호출, mergeLocalCart 는 mergeCartLines(local, server, stockMap) 결과로 통째 교체 — 그룹핑·배송비·병합·클램프를 재구현하지 않음), src/app/cart/actions.ts('use server': addToCartAction·updateQuantityAction·removeFromCartAction·mergeLocalCartAction — 사용자·상품·재고를 서버에서 다시 읽어 판정, 품절은 {error:'품절된 상품입니다'}, 재고 초과는 {error:'재고가 부족합니다 (남은 수량: N)'} 를 던지지 않고 반환, 성공 시 revalidatePath('/cart')), src/lib/local-cart.ts+local-cart.test.ts(LOCAL_CART_KEY='shopmate.cart.v1', readLocalCart/writeLocalCart/clearLocalCart — window 없으면 빈 배열, 깨진 JSON·모양 불일치 줄은 조용히 버림, 테스트 7개), src/app/cart/page.tsx(Server Component: 로그인이면 getCartGroups→calculateOrderTotals→<ServerCart>, 비로그인이면 listProducts()를 <LocalCart> 에 내려 클라이언트가 로컬 줄과 맞춤), src/components/{CartView(그룹 카드·소계/배송비/remainingForFreeShipping·전체 요약, 그룹 1개여도 같은 구조, 삭제는 Danger Text+window.confirm),QuantityStepper,ServerCart(useTransition+액션 에러 표시),LocalCart,CartMerge}.tsx. ★ 병합 트리거: SiteHeader 에서 로그인 상태일 때만 <CartMerge/> 렌더 → useEffect 1회(useRef 잠금으로 StrictMode 이중 실행 차단) 안에서 readLocalCart→mergeLocalCartAction→성공 후 clearLocalCart. 헤더 뱃지는 getCartCount(로그인 시). 검증: npm run build·npm run lint·npm run test(67개) 통과.",
-      "completed_at": "2026-08-30T14:27:18+0900"
+      "completed_at": "2026-08-30T14:27:58+0900"
     },
     {
       "step": 6,

@@ -7,7 +7,8 @@
       "name": "project-setup",
       "status": "completed",
       "started_at": "2026-08-30T13:55:35+0900",
-      "summary": "Next.js 15.5.24 + TypeScript(strict) + Tailwind v4 골격 초기화 — package.json, tsconfig.json, next.config.ts, postcss.config.mjs, eslint.config.mjs, src/app/{layout.tsx,globals.css,page.tsx}. build·lint 통과."
+      "summary": "Next.js 15.5.24 + TypeScript(strict) + Tailwind v4 골격 초기화 — package.json, tsconfig.json, next.config.ts, postcss.config.mjs, eslint.config.mjs, src/app/{layout.tsx,globals.css,page.tsx}. build·lint 통과.",
+      "completed_at": "2026-08-30T14:02:45+0900"
     },
     {
       "step": 1,

@@ -108,7 +108,8 @@ class StepExecutor:
 
     def _run_git(self, *args) -> subprocess.CompletedProcess:
         cmd = ["git"] + list(args)
-        return subprocess.run(cmd, cwd=self._root, capture_output=True, text=True)
+        return subprocess.run(cmd, cwd=self._root, capture_output=True, text=True,
+                              encoding="utf-8", errors="replace")
 
     def _checkout_branch(self):
         branch = f"feat-{self._phase_name}"
@@ -407,6 +408,11 @@ class StepExecutor:
 
 
 def main():
+    # Windows 기본 콘솔 인코딩(cp949)에서는 커밋 메시지의 em dash 등을 출력하다 죽는다.
+    for stream in (sys.stdout, sys.stderr):
+        with contextlib.suppress(AttributeError, ValueError):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+
     parser = argparse.ArgumentParser(description="Harness Step Executor")
     parser.add_argument("phase_dir", help="Phase directory name (e.g. 0-mvp)")
     parser.add_argument("--push", action="store_true", help="Push branch after completion")

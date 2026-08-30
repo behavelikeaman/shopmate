@@ -13,11 +13,19 @@ const INPUT_CLASS =
   'w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm placeholder:text-neutral-400 focus:border-neutral-900 focus:outline-none'
 const LABEL_CLASS = 'block text-sm text-neutral-700'
 
+/** 필드 에러는 그 입력 바로 아래 한 줄로 (UI_GUIDE — 빨간 배경 박스를 만들지 않는다). */
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null
+  return <p className="text-sm text-[#b91c1c]">{message}</p>
+}
+
 export function CheckoutForm({ disabled = false }: { disabled?: boolean }) {
   const [state, formAction, pending] = useActionState<PlaceOrderState, FormData>(
     async (_prev, formData) => (await placeOrderAction(formData)) ?? null,
     null,
   )
+
+  const fieldErrors = state?.fieldErrors ?? {}
 
   return (
     <form action={formAction} className="space-y-4">
@@ -34,6 +42,7 @@ export function CheckoutForm({ disabled = false }: { disabled?: boolean }) {
           required
           type="text"
         />
+        <FieldError message={fieldErrors.name} />
       </div>
 
       <div className="space-y-1">
@@ -49,6 +58,7 @@ export function CheckoutForm({ disabled = false }: { disabled?: boolean }) {
           required
           type="tel"
         />
+        <FieldError message={fieldErrors.phone} />
       </div>
 
       <div className="space-y-1">
@@ -64,8 +74,10 @@ export function CheckoutForm({ disabled = false }: { disabled?: boolean }) {
           required
           type="text"
         />
+        <FieldError message={fieldErrors.address} />
       </div>
 
+      {/* 주문 자체가 실패한 경우(재고 부족 등). 특정 필드의 문제가 아니다. */}
       {state?.error && <p className="text-sm text-[#b91c1c]">{state.error}</p>}
 
       <button

@@ -7,6 +7,8 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 import { CheckoutForm } from '@/components/CheckoutForm'
+import { OrderTotals } from '@/components/OrderTotals'
+import { SellerGroupBlock } from '@/components/SellerGroupBlock'
 import { calculateOrderTotals, formatPrice } from '@/lib/pricing'
 import { requireUser } from '@/services/auth'
 import { getCartGroups } from '@/services/cart'
@@ -46,71 +48,31 @@ export default async function CheckoutPage() {
             {/* 판매자가 한 명뿐이어도 같은 그룹 구조로 그린다 (UI_GUIDE). */}
             <div className="space-y-4">
               {groups.map((group) => (
-                <section
-                  className="divide-y divide-neutral-200 rounded-md border border-neutral-200"
+                <SellerGroupBlock
                   key={group.seller.id}
+                  shippingFee={group.shippingFee}
+                  storeName={group.seller.storeName}
+                  subtotal={group.subtotal}
                 >
-                  <header className="flex items-center justify-between px-4 py-3">
-                    <span className="text-sm font-medium text-neutral-900">
-                      {group.seller.storeName}
-                    </span>
-                  </header>
-
-                  <ul className="divide-y divide-neutral-200">
-                    {group.lines.map((line) => (
-                      <li className="flex items-center gap-4 px-4 py-3" key={line.productId}>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm text-neutral-900">{line.product.name}</p>
-                          <p className="text-sm text-neutral-500 tabular-nums">
-                            {formatPrice(line.product.price)} × {line.quantity}개
-                          </p>
-                        </div>
-                        <span className="text-sm font-medium text-neutral-900 tabular-nums">
-                          {formatPrice(line.product.price * line.quantity)}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <footer className="space-y-1 px-4 py-3 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-neutral-500">소계</span>
-                      <span className="text-neutral-900 tabular-nums">
-                        {formatPrice(group.subtotal)}
+                  {group.lines.map((line) => (
+                    <div className="flex items-center gap-3 px-4 py-3" key={line.productId}>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm text-neutral-900">{line.product.name}</p>
+                        <p className="text-sm tabular-nums text-neutral-500">
+                          {formatPrice(line.product.price)} × {line.quantity}개
+                        </p>
+                      </div>
+                      <span className="text-sm font-medium tabular-nums text-neutral-900">
+                        {formatPrice(line.product.price * line.quantity)}
                       </span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-neutral-500">배송비</span>
-                      <span className="text-neutral-900 tabular-nums">
-                        {formatPrice(group.shippingFee)}
-                      </span>
-                    </div>
-                  </footer>
-                </section>
+                  ))}
+                </SellerGroupBlock>
               ))}
             </div>
 
             {/* 최종 합계는 그룹 밖에 둔다 (UI_GUIDE). */}
-            <div className="space-y-2 rounded-md bg-neutral-50 p-4">
-              <div className="flex justify-between text-sm">
-                <span className="text-neutral-500">상품 소계</span>
-                <span className="text-neutral-900 tabular-nums">
-                  {formatPrice(totals.subtotal)}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-neutral-500">배송비 합계</span>
-                <span className="text-neutral-900 tabular-nums">
-                  {formatPrice(totals.shippingTotal)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between border-t border-neutral-200 pt-2">
-                <span className="text-sm text-neutral-700">총 결제 금액</span>
-                <span className="text-lg font-semibold tabular-nums">
-                  {formatPrice(totals.total)}
-                </span>
-              </div>
-            </div>
+            <OrderTotals totals={totals} />
           </section>
 
           <section className="space-y-4">

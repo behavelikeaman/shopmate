@@ -11,12 +11,15 @@ import { revalidatePath } from 'next/cache'
 import { validateShipping } from '@/lib/validation'
 import { createOrder } from '@/services/orders'
 
-export type PlaceOrderState = { error: string } | null
-
-/** 검증 결과에서 화면에 보여줄 한 줄을 만든다. 규칙 자체는 validateShipping 이 갖고 있다. */
-function firstError(errors: Record<string, string | undefined>): string {
-  return Object.values(errors).find((message): message is string => Boolean(message)) ?? ''
-}
+/**
+ * 폼이 다시 그릴 때 필요한 것. 필드별 문구는 화면이 해당 입력 아래에 붙이고,
+ * error 는 주문 자체가 실패했을 때(재고 부족 등) 한 줄로 보여준다.
+ * 규칙 자체는 lib/validation.ts 에만 있다 — 여기서 다시 판정하지 않는다.
+ */
+export type PlaceOrderState = {
+  error?: string
+  fieldErrors?: Partial<Record<'name' | 'phone' | 'address', string>>
+} | null
 
 export async function placeOrderAction(formData: FormData): Promise<PlaceOrderState> {
   const shipping = {
@@ -28,7 +31,7 @@ export async function placeOrderAction(formData: FormData): Promise<PlaceOrderSt
   // 클라이언트가 검사했더라도 서버에서 다시 검사한다. RPC 도 빈 값을 한 번 더 거부한다.
   const validation = validateShipping(shipping)
   if (!validation.ok) {
-    return { error: firstError(validation.errors) }
+    return { fieldErrors: validation.errors }
   }
 
   const result = await createOrder(shipping)
@@ -39,5 +42,6 @@ export async function placeOrderAction(formData: FormData): Promise<PlaceOrderSt
   // 주문이 성공하면 장바구니는 RPC 안에서 이미 비워졌다. 헤더 뱃지도 갱신되어야 한다.
   revalidatePath('/cart')
   revalidatePath('/', 'layout')
-  redirect(`/orders/${result.orderId}`)
+  // placed=1 이면 주문 상세가 완료 안내를 함께 그린다. 별도의 완료 페이지를 만들지 않는다.
+  redirect(`/orders/${result.orderId}?placed=1`)
 }

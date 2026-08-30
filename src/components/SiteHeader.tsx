@@ -42,20 +42,21 @@ export async function SiteHeader() {
       {/* 로그인 상태로 어느 화면을 열든, 브라우저에 남아 있던 장바구니를 한 번 서버로 합친다. */}
       {profile && <CartMerge />}
 
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-4">
         <Link className="text-lg font-semibold text-neutral-900" href="/">
           ShopMate
         </Link>
 
-        <nav className="flex items-center gap-4">
+        <nav className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <Link
-            className="relative inline-flex items-center text-neutral-700 hover:text-neutral-900"
+            className="inline-flex items-center gap-1 text-neutral-700 hover:text-neutral-900"
             href="/cart"
           >
             <CartIcon />
             <span className="sr-only">장바구니</span>
+            {/* 담긴 개수는 아이콘 옆에 숫자로. 원형 뱃지를 만들지 않는다 (UI_GUIDE). */}
             {cartCount > 0 && (
-              <span className="ml-1 text-xs tabular-nums text-neutral-700">{cartCount}</span>
+              <span className="text-sm tabular-nums text-neutral-900">{cartCount}</span>
             )}
           </Link>
 

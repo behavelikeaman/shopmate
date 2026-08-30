@@ -45,10 +45,10 @@ export default async function OrdersPage() {
                 className="divide-y divide-neutral-200 rounded-md border border-neutral-200"
                 key={order.id}
               >
-                <div className="flex items-center justify-between px-4 py-3">
-                  <div>
+                <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+                  <div className="min-w-0">
                     <p className="text-sm text-neutral-900">{formatDate(order.createdAt)}</p>
-                    <p className="text-xs text-neutral-500">주문번호 {order.id}</p>
+                    <p className="break-all text-xs text-neutral-500">주문번호 {order.id}</p>
                   </div>
                   <span className="text-lg font-semibold tabular-nums">
                     {formatPrice(totals.total)}
@@ -57,8 +57,11 @@ export default async function OrdersPage() {
 
                 <ul className="divide-y divide-neutral-100">
                   {order.groups.map((group) => (
-                    <li className="flex items-center justify-between px-4 py-3" key={group.id}>
-                      <span className="text-sm font-medium text-neutral-900">
+                    <li
+                      className="flex items-center justify-between gap-2 px-4 py-3"
+                      key={group.id}
+                    >
+                      <span className="min-w-0 truncate text-sm font-medium text-neutral-900">
                         {group.seller.storeName}
                       </span>
                       <OrderStatusBadge status={group.status} />

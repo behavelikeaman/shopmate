@@ -33,11 +33,13 @@ function toSignUpMessage(message: string): string {
   if (lower.includes('password')) {
     return `비밀번호는 ${MIN_PASSWORD_LENGTH}자 이상이어야 합니다.`
   }
+  // 'rate limit' 을 'email' 보다 먼저 본다. Supabase 의 한도 초과 메시지는
+  // "email rate limit exceeded" 라서, 순서가 반대면 형식 오류로 잘못 번역된다.
+  if (lower.includes('rate limit') || lower.includes('too many')) {
+    return '메일 발송 한도를 넘었습니다. 잠시 후 다시 시도하거나, Supabase 대시보드에서 이메일 확인(Confirm email)을 꺼 주세요.'
+  }
   if (lower.includes('email')) {
     return '이메일 형식이 올바르지 않습니다.'
-  }
-  if (lower.includes('rate limit') || lower.includes('too many')) {
-    return '요청이 너무 잦습니다. 잠시 후 다시 시도해 주세요.'
   }
   return '가입에 실패했습니다. 잠시 후 다시 시도해 주세요.'
 }

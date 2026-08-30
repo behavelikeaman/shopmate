@@ -1,109 +1,112 @@
-# Step 8: admin
+# Step 8: storefront-ui
 
 ## 읽어야 할 파일
 
-먼저 아래 파일들을 읽고 프로젝트의 아키텍처와 설계 의도를 파악하라:
-
-- `/docs/PRD.md` (핵심 기능 5, 화면 표)
-- `/docs/ADR.md` (ADR-008 관리자 판별)
-- `/docs/UI_GUIDE.md`
+- `/docs/UI_GUIDE.md` — **이 step의 주 사양이다. 원칙·색상·컴포넌트·안티패턴을 전부 따른다.**
+- `/docs/PRD.md` — 화면 표, 재고 규칙, 디자인 절
+- `/docs/ARCHITECTURE.md` — 패턴 (Server Component 기본)
 - `/CLAUDE.md`
-- `/src/services/auth.ts` (`requireAdmin`)
-- `/src/services/products.ts`, `/src/services/orders.ts`
-- `/src/lib/pricing.ts`, `/src/lib/validation.ts`
-- `/supabase/migrations/0002_rls.sql` (관리자 정책이 무엇을 허용하는지)
-- `/src/middleware.ts`
+- `/src/lib/pricing.ts`, `/src/lib/order-status.ts`
+- `/src/services/products.ts`, `/src/services/cart.ts`, `/src/services/orders.ts`
+- `/src/app/` 하위의 이미 만들어진 페이지들 — **스타일만 입힌다**
+- `/src/components/`
 
 이전 step에서 만들어진 코드를 꼼꼼히 읽고, 설계 의도를 이해한 뒤 작업하라.
 
 ## 작업
 
-관리자 화면을 만든다. 범위는 상품 CRUD와 주문 목록 조회·상태 변경까지다.
+기능 위주로 만든 고객 화면을 UI_GUIDE에 맞춰 완성한다. **동작을 바꾸지 말고 표현을 완성하는 step이다.**
 
-### 1. `src/lib/product-form.ts` (TDD)
+### 1. 상품 목록 `src/app/page.tsx`
 
-```ts
-export function validateProductInput(input: {
-  name?: string; price?: string | number; category?: string; stock?: string | number; imageUrl?: string
-}): { ok: boolean; value?: { name: string; price: number; category: string; stock: number; imageUrl: string | null }; errors: Record<string, string> }
-```
+- Server Component. `searchParams`의 `category`·`q`를 `listProducts()`에 넘긴다.
+- 카테고리 필터: `listCategories()` 결과를 칩으로. 선택된 칩은 `border-neutral-900`.
+- 검색: 제출하면 URL 쿼리가 바뀌는 GET 폼. **클라이언트 상태로 필터링하지 마라** — 서버가 필터링한다.
+- 그리드: `grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4`.
+- **순서는 등록순 그대로.** 품절을 뒤로 밀지 마라 (PRD).
+- 결과가 없으면 빈 상태 문구 + 필터 초기화 링크.
 
-- 폼에서 오는 값은 전부 문자열이다. 여기서 정수로 파싱하고 검증한다.
-- `price`, `stock`: 정수여야 하고 0 이상. `"1000.5"`, `"abc"`, `""`, 음수는 에러 (ADR-005).
-- `imageUrl`: 비어 있으면 `null`, 있으면 `http(s)://`로 시작해야 한다.
-- `name`, `category`: 공백 제거 후 1자 이상.
-- **테스트를 먼저 쓴다** (CLAUDE.md CRITICAL, ADR-004).
+### 2. `src/components/ProductCard.tsx`
 
-### 2. `src/services/products.ts`에 관리자용 함수 추가
+- UI_GUIDE의 상품 카드 클래스를 쓴다.
+- 이미지가 없거나 로드 실패면 `bg-neutral-100` 플레이스홀더. 깨진 이미지 아이콘이 보이면 안 된다.
+- **스토어명을 카드에 보조 텍스트로 표시한다** (마켓플레이스이므로 누가 파는지가 정보다).
+- `stock === 0`이면 "품절" 뱃지. 카드 전체를 흐리게 하지는 않는다(상세는 볼 수 있어야 한다).
+- 가격은 `formatPrice()` + `tabular-nums`.
 
-```ts
-export async function createProduct(input: ProductInput): Promise<Product>
-export async function updateProduct(id: string, input: ProductInput): Promise<Product>
-export async function deleteProduct(id: string): Promise<void>
-export async function listAllProductsForAdmin(): Promise<Product[]>
-```
+### 3. 상품 상세 `src/app/products/[id]/page.tsx`
 
-- **`createServerSupabaseClient()`를 쓴다.** RLS의 관리자 정책이 실제로 통과하는지 확인하는 것이 이 step의 목적 중 하나다. admin(service_role) 클라이언트로 우회하면 정책이 틀려도 모른다.
-- 삭제는 주문 이력에 영향을 주면 안 된다. `order_items.product_id`가 `on delete set null`이고 상품명은 스냅샷이므로 (ADR-006), 삭제해도 과거 주문은 온전해야 한다. 이걸 수동 검증 항목에 넣는다.
+- 좌: 이미지(`aspect-square`), 우: 카테고리 / 상품명 / **스토어명** / 가격 / 재고 상태 / 설명 / 수량 스테퍼 + 담기.
+- 없는 id면 `notFound()`.
+- 품절이면 담기 버튼 `disabled` + "품절" 문구. 이유를 숨기지 마라.
+- 담기 성공 시 화면 이동 없이 "장바구니에 담았습니다 · 장바구니 보기" 인라인 피드백. **토스트 라이브러리를 설치하지 마라.**
 
-### 3. `src/services/orders.ts`에 관리자용 함수 추가
+### 4. 장바구니 · 체크아웃 · 주문내역 스타일 완성
 
-```ts
-export async function listAllOrders(): Promise<Order[]>
-export async function updateOrderStatus(orderId: string, status: OrderStatus): Promise<void>
-```
+**판매자 그룹 블록**(UI_GUIDE)을 공용 컴포넌트로 만들어 세 화면에서 함께 쓴다.
 
-`updateOrderStatus`는 `'paid' | 'shipped' | 'cancelled'` 외의 값을 거부한다. 취소 시 재고를 되돌릴지는 MVP 범위 밖이므로 **되돌리지 않는다** — 대신 그 한계를 summary에 명시하라.
+- `src/components/SellerGroupBlock.tsx` — 헤더(스토어명 + 선택적 상태 뱃지), 품목 슬롯, 푸터(소계 / 배송비 / 선택적 무료배송 안내).
+- `src/components/OrderStatusBadge.tsx` — `statusLabel()`을 쓰고 UI_GUIDE "주문 상태" 표의 스타일을 그대로 적용. **알약 모양으로 만들지 말고, 색으로만 구분하지 마라.**
+- 장바구니: 품목 행(썸네일·상품명·단가·수량 스테퍼·소계·삭제), 그룹 푸터에 무료배송까지 남은 금액. 전체 요약은 그룹 밖.
+- 체크아웃: `max-w-3xl`, 그룹 요약 + 배송지 폼. 필드 에러는 필드 아래 `text-[#b91c1c]` 한 줄.
+- 주문내역: 주문 카드 목록(날짜·총액·그룹별 스토어명과 상태 뱃지).
+- 주문 상세: 그룹 블록 + 상태 뱃지 + 취소 버튼(Danger Text). 취소된 그룹은 남는다.
+- 주문 완료 직후 화면: 주문번호와 총액을 크게, "주문내역 보기" / "쇼핑 계속하기" 두 액션.
 
-### 4. 화면
+**그룹이 하나뿐이어도 같은 구조로 그린다** (UI_GUIDE).
 
-- `src/app/admin/layout.tsx` — 최상단에서 `requireAdmin()`을 호출한다. 하위 페이지마다 반복 확인하지 않아도 되게 한 곳에 모은다. 단, **Server Action 안에서도 각각 `requireAdmin()`을 호출한다.** 레이아웃 가드는 액션을 보호하지 않는다.
-- `src/app/admin/products/page.tsx` — 상품 테이블(이름·카테고리·가격·재고·수정/삭제). 재고 0은 시각적으로 구분.
-- `src/app/admin/products/new/page.tsx`, `src/app/admin/products/[id]/edit/page.tsx` — 폼. 검증 에러는 필드 아래에 표시.
-- `src/app/admin/products/actions.ts` — `createProductAction` / `updateProductAction` / `deleteProductAction`. 각각 `requireAdmin()` → `validateProductInput()` → 서비스 호출 → `revalidatePath`.
-- `src/app/admin/orders/page.tsx` — 주문 목록(날짜·주문자·합계·상태 선택). 상태 변경은 Server Action.
-- 삭제는 되돌릴 수 없으므로 확인 절차를 둔다. `window.confirm`으로 충분하다 — 모달 컴포넌트를 새로 만들지 마라.
+### 5. 레이아웃 · 헤더 · 푸터
 
-UI는 UI_GUIDE를 따르되, 관리자 화면은 밀도 우선이다. 상품 카드 그리드가 아니라 테이블을 쓴다.
+- 헤더(Step 4에서 만든 것)를 UI_GUIDE에 맞춰 다듬는다. 장바구니 아이콘 옆에 담긴 개수를 숫자로.
+- `layout.tsx`에 `metadata`(title "ShopMate", description)를 채운다.
+- 푸터는 한 줄 저작권 표기 정도. 링크 목록을 만들지 마라.
+
+### 6. 로딩 · 에러
+
+- 상품 목록·상세·주문내역에 `loading.tsx`를 두고 UI_GUIDE의 스켈레톤(`bg-neutral-100` 블록)을 쓴다. **스피너 금지.**
+- `error.tsx`로 렌더 실패 시 한 줄 메시지 + 재시도 버튼.
 
 ## Acceptance Criteria
 
 ```bash
 npm run build
 npm run lint
-npm run test    # product-form 테스트 포함, 기존 테스트 전부 통과
+npm run test
 ```
 
 수동 검증 (사람이 수행):
 ```bash
 npm run dev
-# 1. 일반 계정으로 /admin/products 접근 → 접근 불가
-# 2. profiles.role='admin' 으로 승격한 계정으로 접근 → 목록이 보인다
-# 3. 상품 생성 → 목록(/)에 즉시 반영된다
-# 4. 가격을 잘못 입력("abc", 음수, 소수) → 필드 에러가 뜨고 저장되지 않는다
-# 5. 이미 주문된 상품을 삭제 → 해당 주문 상세의 상품명·단가·합계가 그대로 남아 있다
-# 6. /admin/orders 에서 주문 상태를 shipped 로 변경 → 구매자의 /orders 에 반영된다
+# 1. 목록 → 필터 → 검색 → 상세 → 담기 → 장바구니 → 체크아웃 → 주문완료 → 주문내역 → 취소
+#    전 경로를 클릭으로 통과할 수 있다
+# 2. 브라우저 폭을 375px로 줄여도 레이아웃이 깨지지 않고, 가로 스크롤이 생기지 않는다
+# 3. 품절 상품은 담을 수 없고 이유가 화면에 보인다
+# 4. 판매자가 2명 이상인 장바구니에서 그룹 경계와 그룹별 배송비가 한눈에 보인다
+# 5. 판매자가 1명뿐일 때도 같은 그룹 구조로 보인다
 ```
 
 ## 검증 절차
 
 1. 위 AC 커맨드를 실행한다.
-2. 아키텍처 체크리스트를 확인한다:
-   - 모든 관리자 Server Action이 자체적으로 `requireAdmin()`을 호출하는가? (레이아웃 가드에만 의존하지 않는가)
-   - 관리자 서비스가 `service_role` 클라이언트로 RLS를 우회하지 않는가?
-   - `grep -rn "SERVICE_ROLE" src/` 결과가 여전히 `services/supabase.ts` 한 곳뿐인가?
-   - `validateProductInput`이 TDD로 작성되었는가?
-3. 결과에 따라 `phases/0-mvp/index.json`의 step 8을 업데이트한다:
-   - 성공 → `"status": "completed"`, `"summary": "생성한 화면·액션과 알려진 한계(주문 취소 시 재고 미복구 등)"`
-   - 수정 3회 시도 후에도 실패 → `"status": "error"`, `"error_message": "구체적 에러 내용"`
-   - 사용자 개입 필요 (관리자 계정 미승격 등) → `"status": "blocked"`, `"blocked_reason": "구체적 사유"` 후 즉시 중단
+2. 아키텍처 체크리스트:
+   - UI_GUIDE "AI 슬롭 안티패턴" 표의 항목이 하나도 없는가?
+     `grep -rn "backdrop-blur\|blur-3xl\|bg-gradient-to\|rounded-2xl" src/`
+   - 이모지 아이콘 대신 SVG를 썼는가? 상태를 색으로만 구분하지 않는가?
+   - 취소·삭제가 Primary 버튼이 아닌가?
+   - 포인트 색이 구매 CTA에만 쓰였는가? 보라/인디고 계열이 없는가?
+   - 금액 표시가 전부 `formatPrice()`를 거치는가? 컴포넌트에서 `toLocaleString()`을 직접 부르지 않는가?
+   - 새 UI 라이브러리(shadcn, MUI, 아이콘 패키지, 토스트 등)를 설치하지 않았는가?
+3. `phases/0-mvp/index.json`의 step 8을 업데이트한다:
+   - 성공 → `"status": "completed"`, `"summary": "완성한 화면 목록과 새로 만든 공용 컴포넌트"`
+   - 실패 → `"status": "error"` + `error_message` / 개입 필요 → `"status": "blocked"` + `blocked_reason`
 
 ## 금지사항
 
-- 관리자 권한 확인을 `admin/layout.tsx` 한 곳에만 두지 마라. 이유: Server Action은 레이아웃을 거치지 않고 호출될 수 있다.
-- 관리자 CRUD에 `service_role` 클라이언트를 쓰지 마라. 이유: RLS 관리자 정책이 실제로 동작하는지 검증할 기회를 잃고, 정책이 틀린 채로 배포된다.
-- 사용자가 자신을 관리자로 승격할 수 있는 UI나 액션을 만들지 마라. 이유: 누구나 관리자가 된다 (ADR-008).
-- 상품을 삭제할 때 관련 `order_items`를 함께 지우지 마라. 이유: 과거 주문 이력이 사라진다 (ADR-006).
-- 상품 이미지 업로드(Supabase Storage)를 구현하지 마라. 이유: PRD MVP 제외 사항이다. 외부 URL 입력만 받는다.
-- 새 UI 라이브러리나 테이블/모달 컴포넌트 패키지를 설치하지 마라. 이유: 외부 의존성 최소화.
+- UI_GUIDE 안티패턴 표에 있는 것을 쓰지 마라 (glass morphism, gradient text, 네온 글로우, 보라 브랜드색, blur-3xl orb, 일괄 rounded-2xl, 이모지 아이콘, 상태를 색으로만 구분, 취소를 Primary로, 그룹을 구분 없이 나열). 이유: 표에 각각 이유가 적혀 있다.
+- UI 라이브러리·아이콘 패키지·토스트 라이브러리를 설치하지 마라. 이유: 외부 의존성 최소화가 이 프로젝트의 철학이고, 필요한 아이콘은 3~4개뿐이다.
+- 필터링·정렬을 클라이언트 상태로 옮기지 마라. 이유: 서버가 필터링한다는 데이터 흐름이 깨지고, 공유 가능한 URL을 잃는다.
+- 품절 상품을 목록에서 숨기거나 뒤로 밀지 마라. 이유: PRD에서 등록순 그대로 노출로 정했다.
+- 비즈니스 로직(가격 계산, 그룹핑, 재고 판정, 상태 판정)을 컴포넌트에 새로 쓰지 마라. 이유: `lib/`에 이미 있고, 두 벌이 되면 화면과 청구액이 달라진다.
+- Server Action이나 서비스 시그니처를 바꾸지 마라. 이유: 이 step은 표현 계층만 다룬다. 동작 변경이 필요해 보이면 summary에 남기고 넘어가라.
+- 판매자 콘솔 화면을 만들지 마라. 이유: Step 9의 범위다.
 - 기존 테스트를 깨뜨리지 마라.

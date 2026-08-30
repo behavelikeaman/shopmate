@@ -8,8 +8,9 @@
     { "step": 3, "name": "supabase-clients", "status": "pending" },
     { "step": 4, "name": "auth", "status": "pending" },
     { "step": 5, "name": "cart", "status": "pending" },
-    { "step": 6, "name": "checkout-orders", "status": "pending" },
-    { "step": 7, "name": "storefront-ui", "status": "pending" },
-    { "step": 8, "name": "admin", "status": "pending" }
+    { "step": 6, "name": "order-rpc", "status": "pending" },
+    { "step": 7, "name": "checkout-orders", "status": "pending" },
+    { "step": 8, "name": "storefront-ui", "status": "pending" },
+    { "step": 9, "name": "seller-console", "status": "pending" }
   ]
 }

@@ -1,63 +1,59 @@
-# Step 7: storefront-ui
+# Step 7: checkout-orders
 
 ## 읽어야 할 파일
 
-먼저 아래 파일들을 읽고 프로젝트의 아키텍처와 설계 의도를 파악하라:
-
-- `/docs/UI_GUIDE.md` — **이 step의 주 사양이다. 색상·클래스·안티패턴을 전부 따른다.**
-- `/docs/PRD.md` (화면 표, 디자인 절)
-- `/docs/ARCHITECTURE.md` (패턴 — Server Component 기본)
+- `/docs/ARCHITECTURE.md` — 데이터 흐름, 두 RPC 절
+- `/docs/ADR.md` — ADR-013(RPC), ADR-014(조건부 UPDATE), ADR-015(계산 이중화), ADR-017(취소 정책), ADR-010
+- `/docs/PRD.md` — 주문·취소 규칙, 로그인 전환 규칙
+- `/docs/UI_GUIDE.md` — "판매자 그룹 블록", "주문 상태", "되돌릴 수 없는 행동"
 - `/CLAUDE.md`
-- `/src/lib/pricing.ts` (`formatPrice`, `calculateTotals`)
-- `/src/services/products.ts`, `/src/services/cart.ts`, `/src/services/orders.ts`
-- `/src/app/cart/`, `/src/app/checkout/`, `/src/app/orders/` (이미 만들어진 페이지 — 스타일만 입힌다)
-- `/src/components/` (이미 만들어진 컴포넌트)
+- `/supabase/migrations/0004_order_rpc.sql` — **호출할 함수의 인자와 예외 메시지를 여기서 확인하라**
+- `/src/lib/pricing.ts`, `/src/lib/validation.ts`, `/src/lib/order-status.ts`
+- `/src/services/cart.ts`, `/src/services/products.ts`, `/src/services/auth.ts`
+- `/src/app/cart/actions.ts`
 
 이전 step에서 만들어진 코드를 꼼꼼히 읽고, 설계 의도를 이해한 뒤 작업하라.
 
 ## 작업
 
-지금까지 기능 위주로 만든 화면을 UI_GUIDE에 맞춰 완성한다. **동작을 바꾸지 말고 표현을 완성하는 step이다.**
+Step 6에서 만든 RPC를 앱에서 호출하고, 체크아웃·주문내역 화면을 만든다.
+**주문 로직을 TypeScript로 다시 구현하지 마라. RPC를 부르는 것이 전부다.**
 
-### 1. 상품 목록 `src/app/page.tsx`
+### 1. `src/services/orders.ts`
 
-- Server Component. `searchParams`의 `category`·`q`를 `listProducts()`에 넘긴다.
-- 카테고리 필터: `listCategories()` 결과를 칩 형태로. 선택된 칩은 `border-neutral-900`.
-- 검색: 입력 후 제출하면 URL 쿼리가 바뀌는 방식(GET 폼). 클라이언트 상태로 필터링하지 마라 — 서버가 필터링한다.
-- 그리드: `grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4`.
-- 결과가 없으면 빈 상태 문구 + 필터 초기화 링크.
+```ts
+export async function createOrder(shipping: ShippingInfo): Promise<{ ok: true; orderId: string } | { ok: false; error: string }>
+export async function listOrders(): Promise<Order[]>                       // 내 주문 (RLS가 필터)
+export async function getOrder(orderId: string): Promise<Order | null>
+export async function cancelOrderGroup(groupId: string): Promise<{ ok: true } | { ok: false; error: string }>
+export async function shipOrderGroup(groupId: string): Promise<{ ok: true } | { ok: false; error: string }>
+```
 
-### 2. `src/components/ProductCard.tsx`
+- `createOrder`는 `supabase.rpc('create_order', { p_shipping_name, p_shipping_phone, p_shipping_address })` 한 번을 부른다. 재고 확인·금액 계산·INSERT를 여기서 하지 마라.
+- `cancelOrderGroup` / `shipOrderGroup`도 각각 RPC 한 번.
+- RPC가 던진 **한국어 예외 메시지를 그대로 `error`에 담아** 반환한다. 던지지 말고 반환한다(UI가 표시해야 한다). 다만 예상 못 한 DB 에러는 사용자에게 원문을 보여주지 말고 "주문을 처리하지 못했습니다"로 감싼다.
+- 조회 함수는 `orders → order_groups → order_items → seller_profiles`를 조인해 `Order` 타입으로 매핑한다. **`products`를 조인해 현재 가격을 읽지 마라** (ADR-006). 상품명·단가는 `order_items`의 스냅샷을 쓴다.
+- 목록/상세 총액은 `calculateOrderTotals`로 그룹 합에서 계산한다. `orders`에 총액 컬럼이 없다 (ADR-010).
+- 전부 `createServerSupabaseClient()`. RLS가 "내 주문만"과 "판매자는 자기 그룹만"을 보장한다.
 
-- UI_GUIDE의 상품 카드 클래스를 사용한다.
-- 이미지가 없거나 로드 실패면 `bg-neutral-100` 플레이스홀더. 깨진 이미지 아이콘이 보이면 안 된다.
-- `stock === 0`이면 "품절" 뱃지(`bg-neutral-200 text-neutral-500`)를 얹고 카드 전체를 흐리게 하지는 않는다(상세는 볼 수 있어야 한다).
-- 가격은 `formatPrice()` + `tabular-nums`.
+### 2. `src/app/checkout/`
 
-### 3. 상품 상세 `src/app/products/[id]/page.tsx`
+- `page.tsx`: `requireUser('/checkout')`. **판매자 그룹 블록**으로 주문 요약(그룹별 소계·배송비) + 전체 합계 + 배송지 폼.
+- `actions.ts`: `placeOrderAction(formData)` — `validateShipping()`으로 검증 → `createOrder()` → 성공 시 `/orders/{id}`로 redirect, 실패 시 에러 문자열 반환.
+- 주문 버튼은 제출 중 비활성화한다(중복 클릭 방지). 다만 **UI 비활성화를 중복 주문 방지 수단으로 믿지 마라** — 실제 방어는 RPC가 빈 장바구니를 거부하는 것이다.
 
-- 좌: 이미지(`aspect-square`), 우: 카테고리 / 상품명 / 가격 / 재고 상태 / 설명 / 수량 스테퍼 + 장바구니 담기.
-- 없는 id면 `notFound()`.
-- 품절이면 담기 버튼을 `disabled`로 두고 "품절" 문구를 보여준다. 이유를 숨기지 마라.
-- 담기 성공 시 화면 이동 없이 "장바구니에 담았습니다 · 장바구니 보기" 정도의 인라인 피드백. 토스트 라이브러리를 설치하지 마라.
+### 3. `src/app/orders/`
 
-### 4. 장바구니 / 체크아웃 / 주문내역 스타일 완성
+- `page.tsx`: 내 주문 목록. 주문마다 날짜·총액·그룹 요약(스토어명 + 상태 뱃지). 빈 상태는 UI_GUIDE를 따른다.
+- `[id]/page.tsx`: 주문 상세.
+  - **판매자 그룹 블록**으로 그리고, 그룹 헤더에 **상태 뱃지**(UI_GUIDE "주문 상태" 표)를 단다.
+  - 그룹마다 품목(스냅샷 상품명·단가·수량), 소계, 배송비.
+  - 전체 합계와 배송지.
+  - `canCancelGroup(status)`가 true인 그룹에만 **취소 버튼**을 보인다 (UI_GUIDE "되돌릴 수 없는 행동" — Danger Text 버튼 + `window.confirm`에 무엇이 사라지는지 구체적으로).
+  - 남의 주문 id로 접근하면 `notFound()`. RLS가 이미 막지만 UI도 404를 보여야 한다.
+- `actions.ts`: `cancelGroupAction(groupId)` — `cancelOrderGroup()` 호출 → `revalidatePath`. 실패 메시지를 화면에 표시한다.
 
-- 장바구니: 품목 행(이미지 썸네일·상품명·단가·수량 스테퍼·소계·삭제), 우측 또는 하단에 요약 박스(소계 / 배송비 / 합계). 무료배송까지 남은 금액 안내 한 줄.
-- 체크아웃: `max-w-3xl`, 배송지 폼 + 주문 요약. 필드별 에러는 필드 아래 `text-[#b91c1c]` 한 줄.
-- 주문내역: 주문 카드 목록(날짜·상태 뱃지·합계·대표 상품명 외 N건). 상태 뱃지는 색으로만 구분하지 말고 텍스트를 함께 쓴다.
-- 주문 완료 화면: 주문번호와 합계를 크게, "주문내역 보기" / "쇼핑 계속하기" 두 개의 액션.
-
-### 5. 레이아웃 / 헤더 / 푸터
-
-- 헤더는 Step 4에서 만든 것을 UI_GUIDE에 맞춰 다듬는다. 장바구니 아이콘 옆에 담긴 개수를 숫자로 표시한다.
-- `layout.tsx`에 `metadata` (title: "ShopMate", description)를 채운다.
-- 푸터는 한 줄짜리 저작권 표기 정도. 링크 목록을 만들지 마라.
-
-### 6. 로딩 / 에러
-
-- 상품 목록과 상세에 `loading.tsx`를 두고 UI_GUIDE의 스켈레톤(`bg-neutral-100` 블록)을 쓴다. 스피너 금지.
-- `error.tsx`로 렌더 실패 시 한 줄 메시지 + 재시도 버튼.
+취소된 그룹은 목록에서 사라지지 않고 `취소됨` 뱃지를 단 채 남는다 (UI_GUIDE).
 
 ## Acceptance Criteria
 
@@ -70,32 +66,39 @@ npm run test
 수동 검증 (사람이 수행):
 ```bash
 npm run dev
-# 1. 목록 → 카테고리 필터 → 검색 → 상세 → 담기 → 장바구니 → 체크아웃 → 주문완료 → 주문내역
-#    전 경로를 클릭으로 통과할 수 있다
-# 2. 브라우저 폭을 375px로 줄여도 레이아웃이 깨지지 않는다
-# 3. 품절 상품은 담을 수 없고 이유가 화면에 보인다
+# 1. 서로 다른 판매자 상품을 담고 주문 → /orders/{id} 로 이동, 그룹이 판매자별로 나뉘어 보인다
+# 2. Supabase에서 각 상품 stock 이 주문 수량만큼 줄었다
+# 3. 주문 후 장바구니가 비었다
+# 4. 재고 1개짜리를 2개 주문 시도 → 주문 실패 + 재고가 줄지 않았다 (부분 주문도 안 생겼다)
+# 5. 주문 후 판매자가 상품 가격을 바꿔도 기존 주문 금액은 그대로다
+# 6. 한 그룹을 취소 → 그 그룹만 '취소됨'이 되고 그 상품 재고가 복구된다.
+#    다른 그룹은 '발송 준비중' 그대로다
+# 7. 취소를 두 번 시도 → 두 번째는 실패하고 재고가 두 배로 늘지 않는다
+# 8. ★ 체크아웃 화면에 보인 합계와 /orders/{id} 에 저장된 합계가 일치한다   ← ADR-015 이중화 검증
 ```
+
+8번을 반드시 확인하라. 화면 금액은 `lib/pricing.ts`가, 저장 금액은 SQL이 계산하므로 두 값이 어긋날 수 있다 (ADR-015).
 
 ## 검증 절차
 
 1. 위 AC 커맨드를 실행한다.
-2. 아키텍처 체크리스트를 확인한다:
-   - UI_GUIDE "AI 슬롭 안티패턴" 표의 항목이 코드에 하나도 없는가? (`grep -rn "backdrop-blur\|blur-3xl\|bg-gradient-to\|rounded-2xl" src/`로 확인)
-   - 포인트 색이 구매 CTA에만 쓰였는가? 보라/인디고 계열이 없는가?
-   - 이모지 아이콘 대신 SVG를 썼는가?
-   - 금액 표시가 전부 `formatPrice()`를 거치는가? 컴포넌트에서 `toLocaleString()`을 직접 부르지 않았는가?
-   - 새 UI 라이브러리(shadcn, MUI, 아이콘 패키지, 토스트 등)를 설치하지 않았는가?
-3. 결과에 따라 `phases/0-mvp/index.json`의 step 7을 업데이트한다:
-   - 성공 → `"status": "completed"`, `"summary": "완성한 화면 목록과 새로 만든 컴포넌트"`
-   - 수정 3회 시도 후에도 실패 → `"status": "error"`, `"error_message": "구체적 에러 내용"`
-   - 사용자 개입 필요 → `"status": "blocked"`, `"blocked_reason": "구체적 사유"` 후 즉시 중단
+2. 아키텍처 체크리스트:
+   - 재고 확인·금액 계산·주문 INSERT가 TypeScript에 다시 구현되어 있지 않은가? (RPC 호출뿐인가)
+   - 주문 조회가 `products`를 조인해 현재 가격을 읽지 않는가? (ADR-006)
+   - `Order`에 총액을 저장하지 않고 그룹 합으로 계산하는가? (ADR-010)
+   - 취소 버튼이 `paid` 그룹에만 보이는가?
+   - 취소·삭제가 Danger Text 버튼인가? (Primary가 아닌가 — UI_GUIDE)
+3. `phases/0-mvp/index.json`의 step 7을 업데이트한다:
+   - 성공 → `"status": "completed"`, `"summary": "생성한 파일, 서비스·액션 시그니처, 수동 검증 8번(금액 일치) 결과"`
+   - 실패 → `"status": "error"` + `error_message` / 개입 필요 → `"status": "blocked"` + `blocked_reason`
 
 ## 금지사항
 
-- UI_GUIDE의 안티패턴 표에 있는 것을 쓰지 마라 (glass morphism, gradient text, 네온 글로우, 보라 브랜드색, blur-3xl orb, 일괄 rounded-2xl, 이모지 아이콘). 이유: 표에 각각 이유가 적혀 있다.
-- UI 라이브러리·아이콘 패키지·토스트 라이브러리를 설치하지 마라. 이유: 외부 의존성 최소화가 이 프로젝트의 철학이고, 필요한 아이콘은 3~4개뿐이다.
-- 필터링·정렬을 클라이언트 상태로 옮기지 마라. 이유: 서버가 필터링한다는 데이터 흐름이 깨지고, 공유 가능한 URL을 잃는다.
-- 비즈니스 로직(가격 계산, 재고 판정, 병합)을 컴포넌트에 새로 쓰지 마라. 이유: `lib/`에 이미 있고, 두 벌이 되면 화면과 청구액이 달라진다.
-- Server Action이나 서비스 시그니처를 바꾸지 마라. 이유: 이 step은 표현 계층만 다룬다. 동작 변경이 필요해 보이면 summary에 남기고 넘어가라.
-- 관리자 화면을 만들지 마라. 이유: Step 8의 범위다.
+- 주문 생성·취소 로직을 TypeScript로 다시 구현하지 마라. 이유: 트랜잭션이 깨져 재고와 주문이 어긋난다 (ADR-013). RPC를 부르는 것이 전부다.
+- SQL 파일(`supabase/migrations/`)을 수정하지 마라. 이유: Step 6에서 확정했다. 함수에 문제가 있으면 고치지 말고 summary에 적어라.
+- 클라이언트가 보낸 가격·소계·합계를 서버로 넘기지 마라. 이유: 브라우저에서 값을 조작해 1원짜리 주문을 만들 수 있다.
+- `order_items` 조회 시 `products`를 조인해 현재 가격을 표시하지 마라. 이유: 과거 주문 금액이 소급 변경된다 (ADR-006).
+- `calculateOrderTotals`·`validateShipping`·`canCancelGroup`을 다시 구현하지 마라.
+- 실제 PG를 연동하지 마라. 이유: ADR-003.
+- 판매자 콘솔 화면을 만들지 마라. 이유: Step 9의 범위다. (`shipOrderGroup` 서비스 함수는 여기서 만들되, 화면은 Step 9다.)
 - 기존 테스트를 깨뜨리지 마라.

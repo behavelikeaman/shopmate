@@ -5,7 +5,7 @@
 먼저 아래 파일들을 읽고 프로젝트의 아키텍처와 설계 의도를 파악하라:
 
 - `/docs/PRD.md`
-- `/docs/ARCHITECTURE.md`
+- `/docs/ARCHITECTURE.md` (디렉토리 구조 절)
 - `/docs/ADR.md`
 - `/CLAUDE.md`
 - `/.env.example` (필요한 환경 변수 확인)
@@ -26,7 +26,7 @@
    - `src/app/page.tsx` — 지금은 "ShopMate" 제목만 띄우는 최소 플레이스홀더 (실제 상품 목록 UI는 Step 7)
 3. `src/` 하위에 빈 디렉토리를 미리 만들 필요는 없다. 이후 step에서 파일 생성 시 만들면 된다.
 
-**기존 파일 보존 (CRITICAL)**: 이 디렉토리에는 이미 `docs/`, `scripts/`, `.claude/`, `supabase/`, `phases/`, `CLAUDE.md`, `README.md`, `.gitignore`, `.env.example`, `.nvmrc`가 존재한다. `create-next-app`은 비어 있지 않은 디렉토리에서 충돌하거나 기존 파일을 덮어쓸 수 있다. 따라서:
+**기존 파일 보존 (CRITICAL)**: 이 디렉토리에는 이미 `docs/`, `scripts/`, `.claude/`, `supabase/`, `phases/`, `CLAUDE.md`, `README.md`, `docs/GLOSSARY.md`, `.gitignore`, `.env.example`, `.nvmrc`가 존재한다. `create-next-app`은 비어 있지 않은 디렉토리에서 충돌하거나 기존 파일을 덮어쓸 수 있다. 따라서:
 
 - 비대화형으로 실행하라 (프롬프트가 뜨면 실행이 멈춘다). 예: `npx create-next-app@latest <임시경로> --typescript --tailwind --app --src-dir --eslint --use-npm --import-alias "@/*" --no-turbopack` 후 생성된 설정/소스 파일만 루트로 옮기는 방식, 또는 동등한 수동 구성.
 - 위 기존 파일들을 **덮어쓰거나 삭제하지 마라.** 특히 `.gitignore`는 `.env*.local` 무시 규칙을 반드시 보존해야 한다 (덮어쓰면 키 유출). `create-next-app`이 생성한 `.gitignore`와 병합이 필요하면 기존 규칙을 유지한 채 합쳐라. `README.md`도 덮어쓰지 마라.

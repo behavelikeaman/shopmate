@@ -50,12 +50,18 @@ npm run dev     # http://localhost:3000
 ```
 > `package.json`이 아직 없다면 step0을 먼저 실행해야 한다 (아래 참고).
 
-### 5. 관리자 계정 만들기
-회원가입 UI로는 관리자를 만들 수 없다 (ADR-008). 앱에서 이메일로 가입한 뒤 SQL Editor에서 승격한다:
+### 5. 계정 준비
+**판매자**는 가입 화면에서 "판매자로 가입"을 선택하면 된다 (스토어명 필요).
+
+**운영자(admin)**는 회원가입 UI로 만들 수 없다 (ADR-008). 앱에서 이메일로 가입한 뒤 SQL Editor에서 승격한다:
 ```sql
 update profiles set role = 'admin'
 where id = (select id from auth.users where email = '내이메일@example.com');
 ```
+운영자는 전용 화면 없이 판매자 콘솔에서 전체를 보게 된다 (ADR-016).
+
+**시드 데이터**는 판매자 uuid가 필요하다. 판매자 계정을 먼저 가입시킨 뒤,
+`supabase/migrations/0003_seed.sql` 상단의 uuid 상수를 실제 값으로 채우고 실행한다.
 
 ---
 

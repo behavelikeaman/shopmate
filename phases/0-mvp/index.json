@@ -24,7 +24,7 @@
       "status": "completed",
       "started_at": "2026-08-30T14:09:03+0900",
       "summary": "src/types/index.ts (Role, GroupStatus, Seller, Product, CartLine, CartLineView, SellerGroup, CartTotals, ShippingInfo, OrderItem, OrderGroup, Order — Order에 totalAmount 없음/ADR-010) + src/lib 순수 함수 4파일 TDD: pricing.ts(FREE_SHIPPING_THRESHOLD=50000, SHIPPING_FEE=3000, formatPrice, groupBySeller, calculateOrderTotals, remainingForFreeShipping — 배송비는 판매자 그룹별 판정/ADR-012, 정수 연산만), cart.ts(mergeCartLines, clampQuantity), validation.ts(validateShipping), order-status.ts(canCancelGroup, canShipGroup, statusLabel). vitest 도입(vitest.config.ts에 @/* alias, npm run test=vitest run). 테스트 52개 통과, build·lint 통과.",
-      "completed_at": "2026-08-30T14:12:22+0900"
+      "completed_at": "2026-08-30T14:13:05+0900"
     },
     {
       "step": 3,

@@ -16,7 +16,7 @@
       "status": "completed",
       "started_at": "2026-08-30T14:04:22+0900",
       "summary": "supabase/migrations/{0001_schema.sql, 0002_rls.sql, 0003_seed.sql} 작성. 테이블 8개(profiles, seller_profiles, products, carts, cart_items, orders, order_groups, order_items) + 인덱스 7개 + 가입 트리거 handle_new_user(security definer, admin 승격 경로 없음). RLS: 8개 테이블 전부 enable + 정책 23개(정책 0개인 테이블 없음), 헬퍼 is_admin·current_profile_role·owns_order·is_order_seller·can_read_order_group 모두 security definer(정책 무한 재귀 차단). order_groups는 status/shipped_at/cancelled_at 컬럼만 UPDATE 허용. 금액 컬럼(price, subtotal, shipping_fee, unit_price) 전부 integer, numeric/float 없음. orders에 total_amount·status 없음(ADR-010). 시드: 판매자 3명 상품 14개(카테고리 4종, stock 0 두 건, 5만원 임계값 근처 가격 다수). ★ 사람이 할 일: 0003_seed.sql 상단 seller_a/seller_b/seller_c 의 uuid 3개를 실제 판매자 계정 uuid로 채운 뒤 실행. 검증: npm run build·npm run lint 통과, src/ 무변경.",
-      "completed_at": "2026-08-30T14:08:22+0900"
+      "completed_at": "2026-08-30T14:09:02+0900"
     },
     {
       "step": 2,

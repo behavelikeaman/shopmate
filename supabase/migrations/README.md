@@ -6,6 +6,10 @@ Step 1(`phases/0-mvp/step1.md`)에서 아래 파일들이 생성된다:
 - `0002_rls.sql` — RLS 활성화 + 정책
 - `0003_seed.sql` — 실습용 시드 상품
 
+Step 6(`phases/0-mvp/step6.md`)에서 아래 파일이 추가된다:
+
+- `0004_order_rpc.sql` — 주문 생성·취소·발송 함수(RPC)
+
 ## 다른 PC / 새 Supabase 프로젝트에 적용하는 법
 
 Supabase 대시보드 → **SQL Editor** 에서 파일명 순서대로 붙여넣고 실행한다.

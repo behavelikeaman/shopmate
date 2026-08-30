@@ -10,8 +10,17 @@
 // 전부 서버 클라이언트(anon + 쿠키 세션)다. "내 주문만", "판매자는 자기 그룹만"은 RLS 가 보장한다.
 import 'server-only'
 
-import type { GroupStatus, Order, OrderGroup, OrderItem, Seller, ShippingInfo } from '@/types'
+import type {
+  GroupStatus,
+  Order,
+  OrderGroup,
+  OrderItem,
+  Seller,
+  SellerOrderGroup,
+  ShippingInfo,
+} from '@/types'
 
+import { getCurrentProfile } from './auth'
 import { fetchSellers, UNKNOWN_STORE_NAME } from './products'
 import { createServerSupabaseClient } from './supabase'
 
@@ -64,6 +73,24 @@ const ORDER_COLUMNS = `
     id, seller_id, status, subtotal, shipping_fee, shipped_at, cancelled_at,
     order_items ( id, product_id, name_snapshot, unit_price, quantity )
   )
+`
+
+/** 판매자 콘솔은 그룹에서 시작해 주문(배송지)을 거꾸로 붙인다. */
+type SellerGroupRow = OrderGroupRow & {
+  order_id: string
+  created_at: string
+  orders: {
+    shipping_name: string
+    shipping_phone: string
+    shipping_address: string
+    created_at: string
+  } | null
+}
+
+const SELLER_GROUP_COLUMNS = `
+  id, order_id, seller_id, status, subtotal, shipping_fee, created_at, shipped_at, cancelled_at,
+  order_items ( id, product_id, name_snapshot, unit_price, quantity ),
+  orders ( shipping_name, shipping_phone, shipping_address, created_at )
 `
 
 function toItem(row: OrderItemRow): OrderItem {
@@ -209,4 +236,53 @@ export async function shipOrderGroup(
   }
 
   return { ok: true }
+}
+
+/**
+ * 판매자 콘솔용 — 내게 들어온 주문 그룹 목록. admin 이면 전체가 보인다 (ADR-016).
+ *
+ * order_groups 에서 시작해 orders(배송지)와 order_items(스냅샷)를 임베디드 조인으로 붙인다.
+ * 이렇게 하면 같은 주문의 다른 판매자 그룹은 애초에 결과에 들어오지 않는다.
+ *
+ * where seller_id = 나 는 의도를 드러내려고 쓴다. 이 조건을 빼먹어도 남의 그룹이 나오면
+ * 안 되고, 그 보장은 RLS 의 order_groups_select_participants 가 한다 (ADR-008).
+ */
+export async function listSellerOrderGroups(): Promise<SellerOrderGroup[]> {
+  const supabase = await createServerSupabaseClient()
+
+  const profile = await getCurrentProfile()
+  if (!profile) throw new Error('로그인이 필요합니다')
+
+  let request = supabase
+    .from('order_groups')
+    .select(SELLER_GROUP_COLUMNS)
+    .order('created_at', { ascending: false })
+
+  if (profile.role !== 'admin') {
+    request = request.eq('seller_id', profile.id)
+  }
+
+  const { data, error } = await request
+  if (error) throw new Error(`주문을 불러오지 못했습니다: ${error.message}`)
+
+  const rows = (data ?? []) as unknown as SellerGroupRow[]
+  const sellers = await fetchSellers(rows.map((row) => row.seller_id))
+
+  return rows.map((row) => {
+    const seller = sellers.get(row.seller_id) ?? {
+      id: row.seller_id,
+      storeName: UNKNOWN_STORE_NAME,
+    }
+
+    return {
+      ...toGroup(row, seller),
+      orderId: row.order_id,
+      orderedAt: row.orders?.created_at ?? row.created_at,
+      shipping: {
+        name: row.orders?.shipping_name ?? '',
+        phone: row.orders?.shipping_phone ?? '',
+        address: row.orders?.shipping_address ?? '',
+      },
+    }
+  })
 }

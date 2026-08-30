@@ -84,3 +84,15 @@ export type Order = {
   createdAt: string
   groups: OrderGroup[]
 }
+
+/**
+ * 판매자 콘솔에서 쓰는 주문 그룹. 그룹 하나가 곧 "내가 보낼 건" 하나다.
+ *
+ * 배송지가 붙어 있는 이유는 발송에 필요하기 때문이다. 같은 주문의 다른 판매자 그룹은
+ * 여기 들어오지 않는다 — 그 손님이 다른 곳에서 얼마를 샀는지는 볼 수 없다 (ADR-010).
+ */
+export type SellerOrderGroup = OrderGroup & {
+  orderId: string
+  orderedAt: string
+  shipping: ShippingInfo
+}

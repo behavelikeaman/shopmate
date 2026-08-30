@@ -1,0 +1,15 @@
+{
+  "project": "ShopMate",
+  "phase": "0-mvp",
+  "steps": [
+    { "step": 0, "name": "project-setup", "status": "pending" },
+    { "step": 1, "name": "db-schema", "status": "pending" },
+    { "step": 2, "name": "types-and-lib", "status": "pending" },
+    { "step": 3, "name": "supabase-clients", "status": "pending" },
+    { "step": 4, "name": "auth", "status": "pending" },
+    { "step": 5, "name": "cart", "status": "pending" },
+    { "step": 6, "name": "checkout-orders", "status": "pending" },
+    { "step": 7, "name": "storefront-ui", "status": "pending" },
+    { "step": 8, "name": "admin", "status": "pending" }
+  ]
+}

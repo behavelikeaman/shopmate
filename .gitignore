@@ -1,0 +1,27 @@
+node_modules/
+.next/
+out/
+next-env.d.ts
+tsconfig.tsbuildinfo
+
+# 로컬 환경 변수 (실제 키). .env.example은 템플릿이므로 커밋한다.
+.env*.local
+
+# Supabase CLI 로컬 상태
+.branches/
+.temp/
+
+# phase execution outputs
+phases/**/phase*-output.json
+phases/**/step*-output.json
+
+# cron 스케줄 런타임 lock (세션 전용, 커밋 금지)
+.claude/scheduled_tasks.lock
+
+# OS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/

@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+/* 라이트 모드 고정 (docs/UI_GUIDE.md). 다크모드는 MVP 제외 사항이다. */
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+}
+
+body {
+  background: #ffffff;
+  color: #171717;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}

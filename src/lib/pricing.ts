@@ -57,8 +57,15 @@ export function groupBySeller(lines: CartLineView[]): SellerGroup[] {
   )
 }
 
-/** 그룹들의 합계. 총액은 저장하지 않고 언제나 여기서 계산한다 (ADR-010). */
-export function calculateOrderTotals(groups: SellerGroup[]): CartTotals {
+/**
+ * 그룹들의 합계. 총액은 저장하지 않고 언제나 여기서 계산한다 (ADR-010).
+ *
+ * 인자를 금액 두 개만으로 좁게 받는다. 장바구니의 SellerGroup 과 주문의 OrderGroup 이
+ * 둘 다 그대로 들어올 수 있어야 하고, 합계에 필요한 것은 이 두 값뿐이기 때문이다.
+ */
+export function calculateOrderTotals(
+  groups: readonly { subtotal: number; shippingFee: number }[],
+): CartTotals {
   let subtotal = 0
   let shippingTotal = 0
 

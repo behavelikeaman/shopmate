@@ -20,7 +20,7 @@ const PRODUCT_COLUMNS =
   'id, seller_id, name, description, price, image_url, category, stock, created_at'
 
 /** 스토어명을 못 찾았을 때 화면에 보여줄 값. 이름이 비어 보이는 것보다 낫다. */
-const UNKNOWN_STORE_NAME = '알 수 없는 판매자'
+export const UNKNOWN_STORE_NAME = '알 수 없는 판매자'
 
 function toProduct(row: ProductRow, seller: Seller): Product {
   return {
@@ -44,7 +44,7 @@ function toProduct(row: ProductRow, seller: Seller): Product {
  * products.seller_id 와 seller_profiles.id 는 둘 다 auth.users 를 가리킬 뿐,
  * 서로를 가리키는 외래키가 없어서 조인 경로가 자동으로 추론되지 않는다.
  */
-async function fetchSellers(sellerIds: string[]): Promise<Map<string, Seller>> {
+export async function fetchSellers(sellerIds: string[]): Promise<Map<string, Seller>> {
   const unique = [...new Set(sellerIds)]
   if (unique.length === 0) return new Map()
 

@@ -61,7 +61,10 @@
     {
       "step": 7,
       "name": "checkout-orders",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-08-30T14:31:50+0900",
+      "completed_at": "2026-08-30T14:35:53+0900",
+      "summary": "생성: src/services/orders.ts(createOrder(shipping)->{ok,orderId}|{ok:false,error} = rpc('create_order',{p_shipping_name,p_shipping_phone,p_shipping_address}) 한 번, listOrders()->Order[], getOrder(id)->Order|null, cancelOrderGroup(groupId)/shipOrderGroup(groupId)->{ok}|{ok:false,error} 도 각각 rpc 한 번. RPC 예외의 한국어 문장은 그대로 error 에 담고, 한글이 없는 원문(Postgres/PostgREST)은 '주문을 처리하지 못했습니다'로 감싼다 — 던지지 않고 반환), src/app/checkout/{page.tsx(requireUser('/checkout') + 판매자 그룹 블록 요약),actions.ts(placeOrderAction: validateShipping -> createOrder -> redirect(/orders/{id}), 배송지 3칸 외에는 폼에서 아무 금액도 받지 않음)}, src/app/orders/{page.tsx(목록·빈 상태),[id]/page.tsx(그룹별 상태 뱃지·품목 스냅샷·소계/배송비·전체 합계·배송지, 없는/남의 주문은 notFound()),actions.ts(cancelGroupAction -> revalidatePath)}, src/components/{OrderStatusBadge,CancelGroupButton(Danger Text + window.confirm '…재고는 복구됩니다'),CheckoutForm(useActionState, 제출 중 비활성화)}.tsx. 수정: lib/pricing.ts calculateOrderTotals 인자를 {subtotal,shippingFee}[] 로 넓혀 OrderGroup 도 그대로 받게 함(계산 로직 무변경, 테스트 20개 그대로 통과), services/products.ts 의 fetchSellers·UNKNOWN_STORE_NAME export(주문 그룹의 스토어명 조회에 재사용 — seller_profiles 는 조인 경로가 없어 별도 조회). 체크: 주문 생성·취소 로직이 TypeScript 에 없음(rpc 호출뿐), 주문 조회에 products 조인 없음(ADR-006 스냅샷만), Order 에 총액 필드 없이 calculateOrderTotals 로 그룹 합 계산(ADR-010), 취소 버튼은 canCancelGroup(paid)에만 노출, 취소는 Danger Text 버튼. AC: npm run build / lint / test(67개) 전부 통과. ★ 수동 검증 8번(체크아웃 화면 금액 == /orders/{id} 저장 금액, ADR-015)은 실행하지 못했다 — Supabase 연결(.env.local)과 0004_order_rpc.sql 적용이 필요한 사람 작업이라 코드상 정합성만 확인했다(SQL shipping_fee_for 50000/3000 과 lib/pricing.ts FREE_SHIPPING_THRESHOLD/SHIPPING_FEE 동일, 양쪽 모두 판매자 그룹 소계 기준). npm run dev 로 1~8번을 직접 확인해야 한다."
     },
     {
       "step": 8,

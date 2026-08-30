@@ -29,7 +29,10 @@
     {
       "step": 3,
       "name": "supabase-clients",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-08-30T14:13:05+0900",
+      "summary": "@supabase/supabase-js·@supabase/ssr·server-only 설치. src/services/supabase.ts — import 'server-only' 최상단, requireEnv 로 환경변수 누락 시 즉시 throw, createBrowserSupabaseClient()/createServerSupabaseClient()(cookies() 어댑터, setAll 예외는 삼킴 — 갱신은 미들웨어 담당)/createAdminSupabaseClient()(service_role, 만들어두되 사용처 없음). src/services/products.ts — listProducts({category,query})·getProduct(id)→Product|null·listCategories()→string[]·getStockMap(ids)→Record<string,number>·getProductsByIds(ids)→Product[], 전부 서버 클라이언트(RLS 적용), snake_case→camelCase 매핑은 toProduct 하나로, 정렬은 created_at 등록순, query 는 ilike 부분일치, Supabase 에러는 전부 throw. 판매자명은 seller_profiles 에서 별도 조회 후 병합(products.seller_id·seller_profiles.id 가 둘 다 auth.users 를 가리켜 PostgREST 임베디드 조인 경로가 없음, profiles 는 조회하지 않음/ADR-011). src/app/page.tsx 를 Server Component 임시 목록으로 교체(스타일 없음). 검증: build·lint 통과, 기존 테스트 52개 유지. grep SERVICE_ROLE=services/supabase.ts 1곳, services/ 에 'use client' 없음. ★ 사람이 할 일: .env.example 을 .env.local 로 복사해 Supabase URL·anon·service_role 키를 채우고, supabase/migrations 3개를 적용해야 npm run dev 에서 시드 상품이 보인다. ※ Step 4 참고: 지시대로 supabase.ts 상단에 'server-only' 를 두었으므로 클라이언트 컴포넌트에서 createBrowserSupabaseClient 를 import 하려면 그 함수를 별도 파일로 분리해야 한다.",
+      "completed_at": "2026-08-30T14:16:30+0900"
     },
     {
       "step": 4,

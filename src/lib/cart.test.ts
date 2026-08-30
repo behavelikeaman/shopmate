@@ -1,3 +1,8 @@
+// ══════════════════════════════════════════════════════════════
+// [시험] 장바구니 합치기 시험
+// 수량 합산·재고 초과 방지·품절 제외가 제대로 되는지 확인한다.
+// ══════════════════════════════════════════════════════════════
+
 import { describe, expect, it } from 'vitest'
 import type { CartLine } from '@/types'
 import { clampQuantity, mergeCartLines } from '@/lib/cart'

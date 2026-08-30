@@ -1,3 +1,8 @@
+// ══════════════════════════════════════════════════════════════
+// [시험] 브라우저 저장소 시험
+// 저장된 내용이 깨져 있어도 앱이 죽지 않고 빈 장바구니로 복구되는지 확인한다.
+// ══════════════════════════════════════════════════════════════
+
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { clearLocalCart, LOCAL_CART_KEY, readLocalCart, writeLocalCart } from './local-cart'

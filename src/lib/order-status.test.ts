@@ -1,3 +1,8 @@
+// ══════════════════════════════════════════════════════════════
+// [시험] 주문 상태 시험
+// 이미 보낸 주문을 취소하려 하면 막히는지 확인한다.
+// ══════════════════════════════════════════════════════════════
+
 import { describe, expect, it } from 'vitest'
 import type { GroupStatus } from '@/types'
 import { canCancelGroup, canShipGroup, statusLabel } from '@/lib/order-status'

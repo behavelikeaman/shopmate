@@ -7,6 +7,7 @@ Next.js 15 (App Router) + TypeScript(strict) + Tailwind CSS + Supabase.
 
 > **코드를 처음 읽는다면 → [`docs/READING_GUIDE.md`](docs/READING_GUIDE.md)** 부터 본다. 어떤 순서로 읽어야 전체가 이해되는지 안내한다.
 > 낯선 용어가 나오면 [`docs/GLOSSARY.md`](docs/GLOSSARY.md).
+> 인터넷에 올리려면 → [`docs/DEPLOY.md`](docs/DEPLOY.md).
 프로젝트 규칙은 [`CLAUDE.md`](CLAUDE.md), 하네스 워크플로우는 [`.claude/commands/harness.md`](.claude/commands/harness.md).
 
 > **현재 상태**: 기획 문서와 하네스 실행 인프라만 있고 애플리케이션 코드는 아직 없다.
